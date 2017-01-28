@@ -1,0 +1,253 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Introduction to GRASS GIS and Scripting in GRASS using Python (Scripting)</title>
+  <meta name="description" content="An Introduction to GRASS GIS and Python Scripting in GRASS given during the FOSS4G-PH 2016 Workshop (April 22, 2016 at College of Engineering, University of the Philippines Diliman)">
+  <meta name="author" content="Ben Hur S. Pintor">
+  <link rel="shortcut icon" href="img/grass.png">
+
+  <script src="js/jquery.js"></script>
+
+<!--
+<link rel="stylesheet" href="http://yandex.st/highlightjs/8.0/styles/default.min.css">
+<script src="http://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+-->
+
+<link rel="stylesheet" href="highlightjs/styles/default.css">
+<script src="highlightjs/highlight.pack.js"></script>
+<link rel="stylesheet" href="font-awesome-4.6.1/css/font-awesome.min.css">
+
+<style>
+.hljs{
+    display: none;
+    /*padding: 0em;*/
+}
+
+</style>
+
+
+  <link rel="stylesheet" href="css/grassdocs.css">
+  <link rel="stylesheet" href="css/codetabs.css">
+
+</head>
+
+
+<body>
+
+<div id="container">
+
+<h1>Introduction to GRASS GIS and Scripting in GRASS using Python</h1>
+<h2 class="notoc">FOSS4G-PH 2016 workshop (April 22, 2016)</h2>
+<p><em>MH 210, College of Engineering, University of the Philippines Diliman, Quezon City 1191</em></p>
+<p>
+Ben Hur S. Pintor
+</p>
+<p><i class="fa fa-github" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp https://github.com/benhur07b</p>
+<p><i class="fa fa-envelope" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp benhur.07b@gmail.com</p>
+
+<p style="border-top-style: solid; border-bottom-style: solid; border-width: 5px; border-color: rgb(0, 0, 0); padding-top: 5px; padding_bottom: 5px;">
+<img src="img/grass-large.png"><img src="img/python-logo-sm.png"><img src="img/foss4gph-2016-sm.png">
+</p>
+
+
+<!-- TODO: things with stdout cannot work with run_command, needs read_command -->
+<h2>Python Scripting in GRASS</h2>
+
+Let's say I want to compute for the daily solar radiation values for January then average them to get the monthly average value. Instead of running r.sun manually 31 times, we can create a script that only needs to be run once.
+<br><br>
+There are two (2) libraries that will allow us to script using Python in GRASS. These are the Python Scripting Library and the PyGRASS module. Let's try to create the same script using both methods. 
+<br><br>
+
+<h3>The Python Scripting Library</h3>
+<pre>
+<code class="python">
+#!/usr/bin/env python
+
+import grass.script as gscript      # import the Python Scripting Library
+
+def main():
+    startday = 1    # the Julian date when to start the computations
+    endday = 31     # the Julian date when to end the computations
+    basename = "psl_clear_GHI"      # basename of the created solar radiation maps
+    output = "psl_clear_GHI_ave"    # name of the average map
+    calc = ""   # variable to hold the mapcalc calculation
+
+    for day in range(startday, endday+1):   # run r.sun from startday to endday
+
+        ghi = "{}_{}".format(basename, day)    # create a new name for the output ghi map
+
+        gscript.run_command('r.sun', elevation='elev', aspect='aspect', 
+            slope='slope', linke='linke_Jan',horizon_basename='horizon', 
+            horizon_step='15', glob_rad=ghi, day=day)   # run r.sun
+
+    '''Create the mapcalc calculation string'''
+    for day in range(startday, endday):
+        calc += "{}_{} + ".format(basename, day)
+
+    calc += "{}_{}".format(basename, endday)
+
+    gscript.mapcalc('{} = {}'.format(output, calc))     # Perform the mapcalc
+
+
+if __name__ == "__main__":
+    main()
+
+</code>
+</pre>
+
+<h3>PyGRASS</h3>
+<pre>
+<code class="python">
+#!/usr/bin/env python
+
+from grass.pygrass.modules import Module    # import Module from PyGRASS
+
+r_sun = Module('r.sun')     # r_sun is the r.sun module
+r_mapcalc = Module('r.mapcalc')     #r_mapcalc is the r.mapcalc module
+
+def main():
+    startday = 1    # the Julian date when to start the computations
+    endday = 31     # the Julian date when to end the computations
+    basename = "pygrass_clear_GHI"      # basename of the created solar radiation maps
+    output = "pygrass_clear_GHI_ave"    # name of the average map
+    calc = ""   # variable to hold the mapcalc calculation
+
+    for day in range(startday, endday+1):   # run r.sun from startday to endday
+
+        ghi = "{}_{}".format(basename, day)    # create a new name for the output ghi map
+
+        r_sun(elevation='elev', aspect='aspect', slope='slope', 
+            linke='linke_Jan', horizon_basename='horizon', horizon_step='15', 
+            glob_rad=ghi, day=day, verbose=True, overwrite=True)    # run r.sun
+
+    '''Create the mapcalc calculation string'''
+    for day in range(startday, endday):
+        calc += "{}_{} + ".format(basename, day)
+
+    calc += "{}_{}".format(basename, endday)
+
+    r_mapcalc(expression="{} = {}".format(output, calc))
+
+
+if __name__ == "__main__":
+    main()
+
+</code>
+</pre>
+
+
+<h3>Adding a GRASS module interface to the script</h3>
+<pre>
+<code class="python">
+#!/usr/bin/env python
+
+'''This script doesn't work when run from the terminal. 
+It must be run from File -> Launch script menu'''
+
+'''The parts below define the module interface.'''
+#%module
+#% description: Computes daily solar radiation from start day to end day and averages them
+#% keyword: raster
+#% keyword: r.sun
+#% keyword: average
+#%end
+#%option
+#% key: startday
+#% type: integer
+#% description: The Julian day to start computations
+#% required : yes
+#% answer: 1
+#%end
+#%option
+#% key: endday
+#% type: integer
+#% description: The Julian day to stop computations
+#% required : yes
+#% answer: 31
+#%end
+#%option
+#% key: basename
+#% type: string
+#% description: basename for daily GHI maps
+#% required : no
+#% answer: clear_GHI
+#%end
+#%option
+#% key: output
+#% type: string
+#% description: The name of the output average raster
+#% required : no
+#% answer: clear_GHI_ave
+#%end
+
+
+import sys
+import grass.script as gscript      # import the Python Scripting Library
+from grass.pygrass.modules import Module    # import Module from PyGRASS
+
+r_sun = Module('r.sun')     # r_sun is the r.sun module
+r_mapcalc = Module('r.mapcalc')     #r_mapcalc is the r.mapcalc module
+
+def main():
+    '''Set options (corresponds to the options stated above)'''
+    startday = int(options['startday'])     # the Julian date when to start the computations
+    endday = int(options['endday'])         # the Julian date when to end the computations 
+    basename = options['basename']          # basename of the created solar radiation maps
+    output = options['output']              # name of the average map
+    calc = ""   # variable to hold the mapcalc calculation
+
+    for day in range(startday, endday+1):   # run r.sun from startday to endday
+
+        ghi = "{}_{}".format(basename, day)    # create a new name for the output ghi map
+
+        r_sun(elevation='elev', aspect='aspect', slope='slope', 
+            linke='linke_Jan', horizon_basename='horizon', horizon_step='15', 
+            glob_rad=ghi, day=day, verbose=True, overwrite=True)    #run r.sun
+
+    '''Create the mapcalc calculation string'''
+    for day in range(startday, endday):
+        calc += "{}_{} + ".format(basename, day)
+
+    calc += "{}_{}".format(basename, endday)
+
+    r_mapcalc(expression="{} = {}".format(output, calc))
+
+
+if __name__ == "__main__":
+    options, flags = gscript.parser()
+    main()
+
+</code>
+</pre>
+
+For more information, visit: 
+<ul>
+<li><a href="https://grass.osgeo.org/grass70/manuals/libpython/">GRASS GIS Python Library Documentation</a></li>
+</ul>
+
+
+
+  <script src="js/codetabs.js"></script>
+
+<hr>
+<h2>Sitemap</h2>
+<p><a href="index.html">Introduction</a> | <a href="raster.html">Raster Processing and Analysis</a> | <a href="vector.html">Vector Processing and Analysis</a> | <a href="solar.html">WORKSHOP 1</a> | <a href="script.html">WORKSHOP 2 (Scripting)</a></p>
+
+</div>
+
+<footer>
+
+<p>
+  <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+    <img alt="Creative Commons License" src="img/ccbysa.png"></a>
+  <br>
+  Introduction to GRASS GIS and Scripting in GRASS using Python by Ben Hur S. Pintor is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> and is inspired by <a href="https://ncsu-osgeorel.github.io/grass-temporal-workshop">Spatio-temporal data handling and visualization in GRASS GIS workshop for FOSS4G 2014 by Vaclav Petras, Anna Petrasova, Helena Mitasova and Markus Neteler</a>
+</p>
+
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Introduction to GRASS GIS and Scripting in GRASS using Python</title>
+  <meta name="description" content="An Introduction to GRASS GIS and Python Scripting in GRASS given during the FOSS4G-PH 2016 Workshop (April 22, 2016 at College of Engineering, University of the Philippines Diliman)">
+  <meta name="author" content="Ben Hur S. Pintor">
+  <link rel="shortcut icon" href="img/grass.png">
+  <link rel="image_src" href="img/foss4gph-2016.jpg" />
+
+  <script src="js/jquery.js"></script>
+
+<!--
+<link rel="stylesheet" href="http://yandex.st/highlightjs/8.0/styles/default.min.css">
+<script src="http://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+-->
+
+<link rel="stylesheet" href="highlightjs/styles/default.css">
+<script src="highlightjs/highlight.pack.js"></script>
+<link rel="stylesheet" href="font-awesome-4.6.1/css/font-awesome.min.css">
+
+<style>
+.hljs{
+    display: none;
+    /*padding: 0em;*/
+}
+
+</style>
+
+
+  <link rel="stylesheet" href="css/grassdocs.css">
+  <link rel="stylesheet" href="css/codetabs.css">
+
+</head>
+
+
+<body>
+
+<div id="container">
+
+<h1>Introduction to GRASS GIS and Scripting in GRASS using Python</h1>
+<h2 class="notoc">FOSS4G-PH 2016 workshop (April 22, 2016)</h2>
+<p><em>MH 210, College of Engineering, University of the Philippines Diliman, Quezon City 1191</em></p>
+<p>
+Ben Hur S. Pintor
+</p>
+<p><i class="fa fa-github" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp https://github.com/benhur07b</p>
+<p><i class="fa fa-envelope" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp benhur.07b@gmail.com</p>
+
+<p style="border-top-style: solid; border-bottom-style: solid; border-width: 5px; border-color: rgb(0, 0, 0); padding-top: 5px; padding_bottom: 5px;">
+<img src="img/grass-large.png"><img src="img/python-logo-sm.png"><img src="img/foss4gph-2016-sm.png">
+</p>
+
+
+<!-- TODO: things with stdout cannot work with run_command, needs read_command -->
+<h2>GRASS GIS</h2>
+<p>
+  GRASS GIS, commonly referred to as GRASS (Geographic Resources Analysis Support System), is a free and open source Geographic Information System (GIS) software suite used for geospatial data management and analysis, image processing, graphics and maps production, spatial modeling, and visualization. GRASS GIS is currently used in academic and commercial settings around the world, as well as by many governmental agencies and environmental consulting companies. It is a founding member of the Open Source Geospatial Foundation (OSGeo).
+  <br><br>
+  It is the granddaddy of most open-source and modern-day GIS with its <a href="https://grass.osgeo.org/home/history">history</a> dating back to its development by the U.S. Army Construction Engineering Research Laboratories (CERL) way back in 1982.
+</p>
+
+<h3>WHY GRASS?</h3>
+<ul>
+  <li>More than 30 years of development history</li>
+  <li>350+ modules to manipulate raster, vector, and other spatial data; process multispectral image data; and create, manage, and store spatial data</li>
+  <li>100+ addons/extensions available</li>
+  <li>Powerful Python Interface</li>
+  <li>Open-source (GNU GPL)</li>
+  <li>Extensive support (mailing lists, tutorials, etc)</li>
+  <li>FREE</li>
+  <li style="font-size: 28px">FREE</li>
+  <li style="font-size: 32px">FREE</li>
+</ul>
+
+<h3>WHY NOT GRASS?</h3>
+<ul>
+  <li>Relatively <b><em>steep</em></b> learning curve</li>
+  <li>Not as popular as proprietary GIS (ArcGIS, etc) for industry use</li>
+  <li>Common misconception that it is <b>NOT</b> user-friendly.</li>
+</ul>
+
+<h3>GRASS Installation</h3>
+<p>
+  Instructions for installation of GRASS in GNU/Linux, MS Windows, and Mac OS are available at: <a href="https://grass.osgeo.org/download/software/">https://grass.osgeo.org/download/software/</a>
+</p>
+<ul>
+<li>Ubuntu</a></li>
+<ol>
+  <li>Add ubuntugis-unstable repository</li>
+  <li>Update the software sources</li>
+  <li>Install GRASS</li>
+</ol>
+<pre>
+<code class="bash">
+sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+sudo apt-get update
+sudo apt-get install grass
+</code>
+</pre>
+<br>
+<li>MS Windows</li>
+  <ol>
+    <li>Download binaries according to your system (<a href="https://grass.osgeo.org/grass70/binary/mswindows/native/x86/WinGRASS-7.0.4RC1-1-Setup-x86.exe">32bit</a>)/(<a href="https://grass.osgeo.org/grass70/binary/mswindows/native/x86_64/WinGRASS-7.0.4RC1-1-Setup-x86_64.exe">64bit</a>))</li>
+    <li>Install binaries (run as admin if required)</li>
+  </ol>
+<br>
+<li>Mac OS</li>
+  <ol>
+    <li><a href="http://grassmac.wikidot.com/frameworks">Install framework packages</a></li>
+    <li><a href="http://grassmac.wikidot.com/downloads">Download GRASS framework packages</a></li>
+    <li>Install</li>
+  </ol>
+</ul>
+
+<h3>GRASS Data Structure</h3>
+<img src="pictures/grass_ds.png">
+<h4 class="notoc">DATABASE</h4>
+<p>
+  The directory where LOCATIONS are stored. <em>Common example is ~/user/grassdata</em>
+</p>
+<h4 class="notoc">LOCATION</h4>
+<p>
+  A LOCATION is some geographic extent of interest that contains data sets that must all be in the same coordinate system. Every location has a PERMANENT directory which stores some basic information about the whole location, and is a good place to park base files. You can think of a location as a data library for a region of interest defined by a coordinate reference system.
+</p>
+<h4 class="notoc">MAPSET</h4>
+<p>
+  Every GRASS session runs under the name of a MAPSET. A MAPSET may be a geographical or thematic subset of the parent LOCATION. Technically they are subdirectories under any location. Users may only select (and thus modify) a mapset that they own (i.e., have created). However, data in all mapsets for a given location can be read by anyone (unless prevented by UNIX file permissions). The "PERMANENT" mapset usually contains the read-only base maps like the elevation model, while the other locations are readable and writable by their owners. The "PERMANENT" mapset also contains some information about the location itself that is not found in other mapsets (projection info etc.), thus it must exist in every location. 
+</p>
+<h4 class="notoc"><em>Computational Region</em></h4>
+<p>
+  The current region or computational region is the actual setting of the region boundaries and the actual raster resolution.
+  As a general rule in GRASS:
+  <ul>
+    <li>Raster maps are always imported completely at their own resolution (exception: WMS imported layers).</li>
+    <li>Vector maps are always imported completely.</li>
+    <li>In computations:</li>
+    <ol>
+      <li><em>Raster input</em> maps are <b>automatically cropped/padded and rescaled (using nearest neighbour resampling) to match the current region</b> in order to produce the output raster map or to query values.</li>
+      <li><em>Raster output</em> maps have their bounds and resolution <b>equal to those of the current computational region.</b></li>
+      <li><em>Vector maps</em> are <b>always considered completely.</b></li>
+    </ol>
+  </ul>
+</p>
+
+<h3>GRASS Command Structure</h3>
+<ul>
+  <li><b>g.*</b> - <em>general modules</em></li>
+  <li><b>m.*</b> - <em>miscellaneous modules</em></li>
+  <li><b>d.*</b> - <em>display modules</em></li>
+  <li><b>r.*</b> - <em>raster modules</em></li>
+  <li><b>v.*</b> - <em>vector modules</em></li>
+  <li><b>i.*</b> - <em>imagery modules</em></li>
+  <li><b>r3.*</b> - <em>3D raster (voxel) modules</em></li>
+  <li><b>db.*</b> - <em>database modules</em></li>
+</ul>
+<img src="pictures/grass7_arch.png">
+
+  <script src="js/codetabs.js"></script>
+
+<h3>Starting GRASS</h3>
+<h4>GRASS Startup Screen</h4>
+<img src="pictures/grass_startup.png">
+<!--
+<img src="pictures/grass_loc00.png"><img src="pictures/grass_loc01.png" style="margin-left: 12px">
+-->
+<p></p>
+<h4>GRASS GUI</h4>
+<p>The first window is the <b>Layer Manager</b> which is Similar to the Table of Contents window of other GIS such as ArcGIS and QGIS. Here you can see the current layers (data) loaded into GRASS session. Adding or removing layers in the Layer Manager can be done using the Layer Manager toolbox</p>
+<img src="pictures/grass_layerman.png" title="layer_manager">
+
+<p>The other window is the <b>Map Display</b> which displays the layers in the Layer Manager.</p>
+<img src="pictures/grass_mapdisp.png" title="map_display">
+
+<p>For more information regarding the GUI, see: <a href="https://grass.osgeo.org/grass70/manuals/wxGUI.html">GRASS GIS Manual: wxGUI</a></p>
+
+<p>
+  Aside from the GUI, there are several other ways to search and send commands to GRASS. These are through the:</p>
+<p>Command Console <img src="pictures/grass_commcon.png"></p>
+<p>Search Module <img src="pictures/grass_searchmod.png"></p>
+<p>Python Shell <img src="pictures/grass_pyshell.png"></p>
+
+
+<hr>
+<h3>Sitemap</h3>
+<p><a href="index.html">Introduction</a> | <a href="raster.html">Raster Processing and Analysis</a> | <a href="vector.html">Vector Processing and Analysis</a> | <a href="solar.html">WORKSHOP 1</a> | <a href="script.html">WORKSHOP 2 (Scripting)</a></p>
+
+
+</div>
+<footer>
+
+<p>
+  <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+    <img alt="Creative Commons License" src="img/ccbysa.png"></a>
+  <br>
+  Introduction to GRASS GIS and Scripting in GRASS using Python by Ben Hur S. Pintor is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> and is inspired by <a href="https://ncsu-osgeorel.github.io/grass-temporal-workshop">Spatio-temporal data handling and visualization in GRASS GIS workshop for FOSS4G 2014 by Vaclav Petras, Anna Petrasova, Helena Mitasova and Markus Neteler</a>
+</p>
+
+</footer>
+
+</body>
+</html>

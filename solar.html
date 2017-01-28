@@ -1,0 +1,484 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Introduction to GRASS GIS and Scripting in GRASS using Python (Solar)</title>
+  <meta name="description" content="An Introduction to GRASS GIS and Python Scripting in GRASS given during the FOSS4G-PH 2016 Workshop (April 22, 2016 at College of Engineering, University of the Philippines Diliman)">
+  <meta name="author" content="Ben Hur S. Pintor">
+  <link rel="shortcut icon" href="img/grass.png">
+
+  <script src="js/jquery.js"></script>
+
+<!--
+<link rel="stylesheet" href="http://yandex.st/highlightjs/8.0/styles/default.min.css">
+<script src="http://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+-->
+
+<link rel="stylesheet" href="highlightjs/styles/default.css">
+<script src="highlightjs/highlight.pack.js"></script>
+<link rel="stylesheet" href="font-awesome-4.6.1/css/font-awesome.min.css">
+
+<style>
+.hljs{
+    display: none;
+    /*padding: 0em;*/
+}
+
+</style>
+
+
+  <link rel="stylesheet" href="css/grassdocs.css">
+  <link rel="stylesheet" href="css/codetabs.css">
+
+</head>
+
+
+<body>
+
+<div id="container">
+
+<h1>Introduction to GRASS GIS and Scripting in GRASS using Python</h1>
+<h2 class="notoc">FOSS4G-PH 2016 workshop (April 22, 2016)</h2>
+<p><em>MH 210, College of Engineering, University of the Philippines Diliman, Quezon City 1191</em></p>
+<p>
+Ben Hur S. Pintor
+</p>
+<p><i class="fa fa-github" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp https://github.com/benhur07b</p>
+<p><i class="fa fa-envelope" aria-hidden="true"></i>&nbsp&nbsp&nbsp&nbsp benhur.07b@gmail.com</p>
+
+<p style="border-top-style: solid; border-bottom-style: solid; border-width: 5px; border-color: rgb(0, 0, 0); padding-top: 5px; padding_bottom: 5px;">
+<img src="img/grass-large.png"><img src="img/python-logo-sm.png"><img src="img/foss4gph-2016-sm.png">
+</p>
+
+
+<!-- TODO: things with stdout cannot work with run_command, needs read_command -->
+<h2 class="notoc">WORKSHOP: Clear-sky Solar Radiation using GRASS and r.sun</h2>
+Software:
+<ul>
+  <li>GRASS GIS 7 (<a href="https://grass.osgeo.org/news/54/15/GRASS-GIS-7-0-3-released/">7.0.3 LTS</a> preferred)</li>
+</ul>
+Data:
+<ul>
+  <li>Region 03 SRTM DEM</li>
+  <li>Region 03 Provinces shapefile</li>
+  <li>Region 03 Linke turbidity csv</li>
+</ul>
+The data can be found <a href="https://github.com/benhur07b/foss4gph2016-workshop-grass">here</a><br>
+The Coordinate System to be used is <em>WGS84 UTM Zone 51N (EPSG:32651)</em>
+<br><br>
+The scripts in the Python tab can be used to run the commands in the Python shell but first you must import the Python Scripting Library using:
+<pre>
+<code class="python">
+import grass.script as gscript
+</code>
+</pre>
+<!--
+<img src="pictures/dataset.png" title="dataset">
+-->
+<h3>Running GRASS and setting up the LOCATION and MAPSET</h3>
+<pre>
+<code class="bash">
+grass
+</code>
+<code class="gui">
+<img src="pictures/grass_open.png" title=open the map>
+</code>
+</pre>
+
+<h4 class="notoc">LOCATION</h4>
+1. Create a NEW LOCATION
+<pre>
+<code class="gui">
+<img src="pictures/loc_00.png">
+</code>
+</pre>
+
+2. Name your LOCATION anything you want (ex. PHL-32651, PHL with UTM Zone 51N CRS)
+<pre>
+<code class="gui">
+<img src="pictures/loc_01.png">
+</code>
+</pre>
+
+3. Select the first option (Select EPSG Code...)
+<pre>
+<code class="gui">
+<img src="pictures/loc_02.png">
+</code>
+</pre>
+
+4. Input 32651 (WGS84 UTM Zone 51N)
+<pre>
+<code class="gui">
+<img src="pictures/loc_03.png">
+</code>
+</pre>
+
+<pre>
+<code class="gui">
+<img src="pictures/loc_04.png">
+</code>
+</pre>
+
+<h4 class="notoc">MAPSET</h4>
+1. Create new MAPSET
+<pre>
+<code class="gui">
+<img src="pictures/mapset_00.png">
+</code>
+</pre>
+<pre>
+<code class="gui">
+<img src="pictures/mapset_01.png">
+</code>
+</pre>
+
+2. Start GRASS Session
+<pre>
+<code class="gui">
+<img src="pictures/startsession.png">
+</code>
+</pre>
+
+
+<em>Creating and Editing a LOCATION and MAPSET can also be done within GRASS</em>
+<pre>
+<code class="gui">
+<img src="pictures/locmap_00.png">
+</code>
+</pre>
+
+<h3>Pre-processing</h3>
+<h4>Importing the elevation raster</h4>
+<pre>
+<code>
+r.in.gdal input=path/to/REG03_SRTM90.tif output=elev
+</code>
+</pre>
+<pre>
+<code class="gui">
+<!--<img src="pictures/import_elev.png">-->
+<video width="100%" height="100%" controls>
+<source src="vids/import_elev.mp4" type="video/mp4">
+</video>
+</code>
+</pre>
+
+<h4>Importing the provinces shapefile</h4>
+<pre>
+<code>
+v.in.ogr input=path/to/REG03_provinces.shp output=provinces
+</code>
+</pre>
+
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/import_prov.mp4" type="video/mp4">
+</video>
+</code>
+</pre>
+
+<h4>Importing the Linke csv to vector file</h4>
+The Linke turbidity csv file is formatted as Latitude, Longitude, Linke for January. The Latitude and Longitude values are in WGS84.
+
+<h5 class="notoc">Convert Coordinates (m.proj)</h5>
+In order to import the values as a vector in our LOCATION, we must first convert the Latitude and Longitude values to the LOCATION's Coordinate Reference System.
+<pre>
+<code>
+m.proj -i --verbose input=/path/to/REG03_Linke.csv output=/path/to/outputfile separator=comma
+</code>
+</pre>
+
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/convert_coor.mp4" type="video/mp4">
+</video>
+</code>
+</pre>
+
+<h5 class="notoc">Importing a csv as vector (v.in.ascii)</h5>
+We then import the output of m.proj using v.in.ascii.
+<pre>
+<code>
+v.in.ascii --verbose input=/path/to/REG03_Linke_proj.csv output=linke separator=comma columns="X DOUBLE PRECISION,Y DOUBLE PRECISION,Jan DOUBLE PRECISION"
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/import_csv.mp4" type="video/mp4">
+</video>
+</code>
+</pre>
+
+<h4>Setting the Computational Region</h4>
+Before doing any processing, especially for rasters, it is important to make sure that the computational region (extent and resolution) is correct.
+<br>
+You can show the current computational region by:
+<pre>
+<code>
+g.region -ap
+</code>
+</pre>
+
+For our purpose, we need to set the computational region equal to that of the elevation raster. This can be done by:
+<pre>
+<code>
+g.region raster=elev@REG03
+</code>
+<code class="gui">
+<img src="pictures/g_region00.png">
+</code>
+</pre>
+<br>
+Or by right clicking on the layer and selecting 
+<pre>
+<code class="gui">
+<img src="pictures/g_region01.png">
+</code>
+</pre>
+
+<h3>Processing</h3>
+<h4>Slope and Aspect raster</h4>
+Slope and aspect rasters can be computed using r.slope.aspect
+<pre>
+<code>
+r.slope.aspect elevation=elev slope=slope aspect=aspect
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_slope_aspect.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h4>Horizon raster</h4>
+Horizon rasters are computed using r.horizon.<br>
+For quicker computations, set the computational region to 300 prior to computing the horizon rasters by using:
+<pre>
+<code>
+g.region res=300
+</code>
+</pre>
+Afterwards, the horizon rasters can be computed by:
+<pre>
+<code>
+r.horizon elevation=elev@REG03 step=15 output=horizon maxdistance=10000
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_horizon.mp4" type="video/mp4">
+</code>
+</pre>
+Afterwards, make sure to set the computational region back to that of the elevation raster.
+<pre>
+<code>
+g.region rester=elev@REG03
+</code>
+</pre>
+
+<h4>Interpolating the Linke turbidity vector</h4>
+Before interpolating the Linke turbidity vector, we must get the normalized Linke turbidity value using the formula: Ln = L + (0.00035 * elevation).
+<h5 class="notoc">Add columns to the attribute table (v.db.addcolumn)</h5>
+The first step is to add columns to hold the elevation and normalized Linke values at the vector points.
+<pre>
+<code>
+v.db.addcolumn map=linke@REG03 columns="Elev DOUBLE PRECISION,Jan_norm DOUBLE PRECISION"
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_db_addcolumn.mp4" type="video/mp4">
+</code>
+</pre>
+This can also be done by right clicking on the vector -> Show attribute data -> Manage Tables -> Add columns
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/addcolumn.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h5 class="notoc">Sample elevation values at the vector points (v.what.rast)</h5>
+The next step is to get the elevation values at the vector points. This can be done by sampling the elevation raster at the vector points with v.what.rast.
+<pre>
+<code>
+v.what.rast map=linke@REG03 raster=elev@REG03 column=elev
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_what_rast.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h5 class="notoc">Compute for the normalized Linke values (v.db.update)</h5>
+The Jan_norm field can be updated using:
+<pre>
+<code>
+v.db.update --verbose map=linke@REG03 layer=1 column=Jan_norm query_column="Jan + (0.00035 * elev)"</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_db_update.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h5 class="notoc">Interpolating for the January Linke turbidity raster using Regularized Spline with Tension (v.surf.rst)</h5>
+<pre>
+<code>
+v.surf.rst --verbose input=linke@REG03 zcolumn=Jan_norm elevation=linke_Jan mask=elev@REG03 tension=100 smooth=0
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_surf_rst.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h4>Clear-sky solar radiation computations using r.sun</h4>
+r.sun is a topography based solar radiation model implemented in GRASS GIS whose main inputs are an elevation raster and the Julian date. Here we will use r.sun to compute for the clear-sky GHI on January 1 of Region 3. The inputs that we will use are:
+<ul>
+<li>Elevation raster (elev)</li>
+<li>Slope raster (slope)</li>
+<li>Aspect raster (aspect)</li>
+<li>Normalized Linke turbidity raster (linke_Jan)</li>
+<li>Horizon rasters (horizon)</li>
+<li>Angle step = 15</li>
+<li>Julian date = 1 (January 1)</li>
+</ul>
+
+<pre>
+<code>
+r.sun --verbose elevation=elev@REG03 aspect=aspect slope=slope linke=linke_Jan horizon_basename=horizon horizon_step=15 glob_rad=clear_GHI_001 day=1
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_sun.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h3>Post-processing</h3>
+<h4>Changing the colors of the raster (r.color)</h4>
+Changing the color scheme of rasters can be done using r.color. Built-in color rules are provided but users can also create their own color rules.<br>
+For example:
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_colors.mp4" type="video/mp4">
+</code>
+</pre>
+You can also save the color table to a file so that you can re-use it.
+
+<h4>Getting the average solar radiation received by each province (v.rast.stats)</h4>
+Zonal statistics like getting the average raster values inside a polygon can be done using v.rast.stats. Here, we want to compute for the average clear-sky solar radiation received by each province for the day (Jan 1).
+<br><br>
+First we load the provinces vector into the Layer Manager. Then we use v.rast.stats to compute for the average GHI received by each province.
+<pre>
+<code>
+v.rast.stats --verbose map=provinces@REG03 raster=clear_GHI_001@REG03 column_prefix=ghi method=average
+</code>
+</pre>
+
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_rast_stats.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h4>Changing the color of the province based on the solar radiation values (v.colors)</h4>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/v_colors.mp4" type="video/mp4">
+</code>
+</pre>
+If the color change doesn't automatically reflect on the Map Window, try to refresh the display by zooming or panning.
+
+
+<h3>Other common modules/operations</h3>
+<h4 class="notoc">Raster Calculations (r.mapcalc)</h4>
+Let's say we want to get the average of 2 rasters <em>(clear_GHI_001, clear_GHI_002)</em> and save it as <em>clear_GHI_ave</em>. We can use GRASS' r.mapcalc.
+
+<pre>
+<code>
+r.mapcalc "clear_GHI_ave = (clear_GHI_001@REG03 + clear_GHI_002@REG03)/2"
+</code>
+</pre>
+
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_mapcalc.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h4 class="notoc">Removing data from the LOCATION (g.remove)</h4>
+Make sure that you tick the force removal checkbox and select the data type. <br>
+You use regular expressions or wildcards to remove multiple data with the same names. 
+<pre>
+<code>
+g.remove
+</code>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/g_remove.mp4" type="video/mp4">
+</code>
+</pre>
+
+<h4 class="notoc">Resampling a raster (r.resamp.stats)</h4>
+Before resampling a raster, you should first set the resolution of the computation region to that of the resolution you want to resample to. For example, if you want to resample from 90m to 300m, first set the resolution of the computation region to 300 by:
+<pre>
+<code>
+g.region res=300
+</code>
+</pre>
+<br>
+Resampling is done using r.resamp.stats. This resamples the raster based on an aggregation method (e.g. average, median, mode, etc.) chosen by the user.
+<pre>
+<code>
+r.resamp.stats input=raster_to_be_resampled output=resampled_raster 
+</code>
+</pre>
+<pre>
+<code class="gui">
+<video width="100%" height="100%" controls="">
+<source src="vids/r_resamp_stats.mp4" type="video/mp4">
+</code>
+</pre>
+
+  <script src="js/codetabs.js"></script>
+
+<hr>
+<h2>Sitemap</h2>
+<p><a href="index.html">Introduction</a> | <a href="raster.html">Raster Processing and Analysis</a> | <a href="vector.html">Vector Processing and Analysis</a> | <a href="solar.html">WORKSHOP 1</a> | <a href="script.html">WORKSHOP 2 (Scripting)</a></p>
+
+</div>
+
+<footer>
+
+<p>
+  <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+    <img alt="Creative Commons License" src="img/ccbysa.png"></a>
+  <br>
+  Introduction to GRASS GIS and Scripting in GRASS using Python by Ben Hur S. Pintor is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> and is inspired by <a href="https://ncsu-osgeorel.github.io/grass-temporal-workshop">Spatio-temporal data handling and visualization in GRASS GIS workshop for FOSS4G 2014 by Vaclav Petras, Anna Petrasova, Helena Mitasova and Markus Neteler</a>
+</p>
+
+</footer>
+
+</body>
+</html>
