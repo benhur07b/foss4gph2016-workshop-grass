@@ -4,5 +4,5 @@ _MH 210, College of Engineering, University of the Philippines Diliman, Quezon C
 
 __Ben Hur S. Pintor__  
 
-Dataset: [https://github.com/bnhr07b/foss4gph2016-grass-workshop](https://github.com/bnhr07b/foss4gph2016-grass-workshop)  
-Workshop: [https://bnhr07b.github.io/foss4gph2016-grass-workshop](https://bnhr07b.github.io/foss4gph2016-grass-workshop)
+Dataset: [https://github.com/benhur07b/foss4gph2016-grass-workshop](https://github.com/benhur07b/foss4gph2016-grass-workshop)  
+Workshop: [https://benhur07b.github.io/foss4gph2016-grass-workshop](https://benhur07b.github.io/foss4gph2016-grass-workshop)
